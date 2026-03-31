@@ -124,7 +124,7 @@ app.get('/customers', async (req, res) => {
   }
 });
 app.post('/collect-payment', async (req, res) => {
-  const { email, amount, description } = req.body;
+  const { email, amount, description, invoice_number, exact_debtor_id } = req.body;
 
   if (!email || !amount) {
     return res.status(400).json({ error: 'Email en amount zijn verplicht.' });
@@ -153,13 +153,37 @@ app.post('/collect-payment', async (req, res) => {
       payment_method_types: ['sepa_debit'],
       confirm: true,
       description: description || 'SEPA incasso via Spectaculis',
-      mandate_data: {
-        customer_acceptance: {
-          type: 'offline'
-        }
+      metadata: {
+        email,
+        invoice_number: invoice_number || '',
+        exact_debtor_id: exact_debtor_id || '',
       }
     });
 
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({
+        last_payment_intent_id: paymentIntent.id,
+        last_payment_status: paymentIntent.status,
+        last_payment_error: null,
+        exact_debtor_id: exact_debtor_id || customerRecord.exact_debtor_id || null
+      })
+      .eq('email', email);
+
+    if (updateError) {
+      console.error('Supabase update fout na collect-payment:', updateError);
+    }
+
+    res.json({
+      success: true,
+      payment_intent_id: paymentIntent.id,
+      status: paymentIntent.status
+    });
+  } catch (err) {
+    console.error('Fout bij collect-payment:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
     res.json({
       success: true,
       payment_intent_id: paymentIntent.id,
