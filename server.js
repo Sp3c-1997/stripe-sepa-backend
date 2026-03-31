@@ -91,12 +91,50 @@ app.post('/webhook', async (req, res) => {
           .select();
 
         if (error) {
-          console.error('Supabase fout:', error);
+          console.error('Supabase fout bij mandate-opslag:', error);
           return res.status(500).json({ error: error.message });
         }
 
         console.log('Klant opgeslagen in Supabase:', data);
       }
+    }
+
+    if (
+      event.type === 'payment_intent.processing' ||
+      event.type === 'payment_intent.succeeded' ||
+      event.type === 'payment_intent.payment_failed'
+    ) {
+      const paymentIntent = event.data.object;
+      const email = paymentIntent.metadata?.email || null;
+
+      if (!email) {
+        console.warn('Geen email in metadata van payment intent:', paymentIntent.id);
+        return res.sendStatus(200);
+      }
+
+      let errorMessage = null;
+
+      if (event.type === 'payment_intent.payment_failed') {
+        errorMessage =
+          paymentIntent.last_payment_error?.message ||
+          'Betaling mislukt zonder specifieke foutmelding.';
+      }
+
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update({
+          last_payment_intent_id: paymentIntent.id,
+          last_payment_status: paymentIntent.status,
+          last_payment_error: errorMessage
+        })
+        .eq('email', email);
+
+      if (updateError) {
+        console.error('Supabase fout bij payment webhook:', updateError);
+        return res.status(500).json({ error: updateError.message });
+      }
+
+      console.log(`Payment webhook verwerkt voor ${email}: ${paymentIntent.status}`);
     }
 
     res.sendStatus(200);
