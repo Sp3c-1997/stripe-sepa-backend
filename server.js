@@ -272,6 +272,26 @@ app.get('/test-collect', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/customers/:email', async (req, res) => {
+  const email = decodeURIComponent(req.params.email);
+
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error) {
+      return res.status(404).json({ error: 'Klant niet gevonden.' });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('Fout bij ophalen klant:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server draait op poort ${PORT}`);
 });
