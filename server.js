@@ -222,16 +222,6 @@ app.post('/collect-payment', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-    res.json({
-      success: true,
-      payment_intent_id: paymentIntent.id,
-      status: paymentIntent.status
-    });
-  } catch (err) {
-    console.error('Fout bij collect-payment:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
 app.get('/test-collect', async (req, res) => {
   try {
     const email = 'nijkamp@generalmail.com'; // vervang indien nodig
