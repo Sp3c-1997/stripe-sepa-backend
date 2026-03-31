@@ -224,7 +224,7 @@ app.post('/collect-payment', async (req, res) => {
 });
 app.get('/test-collect', async (req, res) => {
   try {
-    const email = 'nijkamp@generalmail.com'; // vervang indien nodig
+    const email = 'nijkamp@generalmail.com';
     const amount = 100; // 1 euro in centen
 
     const { data: customerRecord, error: dbError } = await supabase
@@ -245,12 +245,25 @@ app.get('/test-collect', async (req, res) => {
       payment_method_types: ['sepa_debit'],
       confirm: true,
       description: 'Test SEPA incasso Spectaculis',
-      mandate_data: {
-        customer_acceptance: {
-          type: 'offline'
-        }
+      metadata: {
+        email,
+        invoice_number: '',
+        exact_debtor_id: ''
       }
     });
+
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({
+        last_payment_intent_id: paymentIntent.id,
+        last_payment_status: paymentIntent.status,
+        last_payment_error: null
+      })
+      .eq('email', email);
+
+    if (updateError) {
+      console.error('Supabase update fout na test-collect:', updateError);
+    }
 
     res.json({
       success: true,
