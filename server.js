@@ -123,7 +123,93 @@ app.get('/customers', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.post('/collect-payment', async (req, res) => {
+  const { email, amount, description } = req.body;
 
+  if (!email || !amount) {
+    return res.status(400).json({ error: 'Email en amount zijn verplicht.' });
+  }
+
+  try {
+    const { data: customerRecord, error: dbError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (dbError || !customerRecord) {
+      return res.status(404).json({ error: 'Klant niet gevonden in database.' });
+    }
+
+    if (!customerRecord.sepa_active || !customerRecord.stripe_payment_method) {
+      return res.status(400).json({ error: 'Geen actieve SEPA machtiging gevonden voor deze klant.' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: 'eur',
+      customer: customerRecord.stripe_customer_id,
+      payment_method: customerRecord.stripe_payment_method,
+      payment_method_types: ['sepa_debit'],
+      confirm: true,
+      description: description || 'SEPA incasso via Spectaculis',
+      mandate_data: {
+        customer_acceptance: {
+          type: 'offline'
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      payment_intent_id: paymentIntent.id,
+      status: paymentIntent.status
+    });
+  } catch (err) {
+    console.error('Fout bij collect-payment:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+app.get('/test-collect', async (req, res) => {
+  try {
+    const email = 'nijkamp@generalmail.com'; // vervang indien nodig
+    const amount = 100; // 1 euro in centen
+
+    const { data: customerRecord, error: dbError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (dbError || !customerRecord) {
+      return res.status(404).json({ error: 'Klant niet gevonden in database.' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: 'eur',
+      customer: customerRecord.stripe_customer_id,
+      payment_method: customerRecord.stripe_payment_method,
+      payment_method_types: ['sepa_debit'],
+      confirm: true,
+      description: 'Test SEPA incasso Spectaculis',
+      mandate_data: {
+        customer_acceptance: {
+          type: 'offline'
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      payment_intent_id: paymentIntent.id,
+      status: paymentIntent.status
+    });
+  } catch (err) {
+    console.error('Fout bij test-collect:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server draait op poort ${PORT}`);
 });
