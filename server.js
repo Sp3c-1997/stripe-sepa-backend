@@ -162,7 +162,30 @@ app.get('/customers', async (req, res) => {
   }
 });
 app.post('/collect-payment', async (req, res) => {
-  const { email, amount, description, invoice_number, exact_debtor_id } = req.body;
+const { email, amount, description, invoice_number, exact_debtor_id, idempotency_key } = req.body; 
+  if (!idempotency_key) {
+  return res.status(400).json({ error: 'Missing idempotency_key' });
+}
+
+const { data: existingInvoice, error: existingInvoiceError } = await supabase
+  .from('processed_invoices')
+  .select('*')
+  .eq('idempotency_key', idempotency_key)
+  .maybeSingle();
+
+if (existingInvoiceError) {
+  return res.status(500).json({ error: existingInvoiceError.message });
+}
+
+if (existingInvoice) {
+  return res.json({
+    success: true,
+    skipped: true,
+    reason: 'already_processed',
+    payment_intent_id: existingInvoice.payment_intent_id,
+    status: existingInvoice.status
+  });
+}
 
   if (!email || !amount) {
     return res.status(400).json({ error: 'Email en amount zijn verplicht.' });
@@ -197,6 +220,16 @@ app.post('/collect-payment', async (req, res) => {
         exact_debtor_id: exact_debtor_id || '',
       }
     });
+    await supabase
+  .from('processed_invoices')
+  .insert({
+    idempotency_key,
+    invoice_number,
+    email,
+    amount,
+    payment_intent_id: paymentIntent.id,
+    status: paymentIntent.status
+  });
 
     const { error: updateError } = await supabase
       .from('customers')
