@@ -49,8 +49,8 @@ app.post('/create-session', async (req, res) => {
       mode: 'setup',
       customer: customer.id,
       payment_method_types: ['sepa_debit'],
-      success_url: 'https://spectaculis.nl › pages › automatische-incasso-geactiveerd',
-      cancel_url: 'https://www.spectaculis.nl/pages/incasso-geannuleerd'
+      success_url: 'https://spectaculis.nl/account?sepa=success',
+      cancel_url: 'https://spectaculis.nl/account?sepa=cancel',
     });
 
     res.json({ url: session.url });
