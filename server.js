@@ -75,7 +75,12 @@ app.post('/webhook', async (req, res) => {
         const paymentMethodId = setupIntent.payment_method;
 
         const customer = await stripe.customers.retrieve(stripeCustomerId);
-        const email = customer.email || null;
+
+const email =
+  customer.email ||
+  session.customer_details?.email ||
+  session.customer_email ||
+  null;
 
         const payload = {
           email,
