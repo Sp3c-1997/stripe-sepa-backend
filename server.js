@@ -34,7 +34,7 @@ app.get('/debug-env', (req, res) => {
 });
 
 app.post('/create-session', async (req, res) => {
-  const { email } = req.body;
+  const { email, locale } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: 'Email is verplicht.' });
@@ -48,7 +48,7 @@ app.post('/create-session', async (req, res) => {
  const session = await stripe.checkout.sessions.create({
   mode: 'setup',
   payment_method_types: ['sepa_debit'],
-  locale: 'auto',
+  locale: ['nl', 'en', 'de', 'fr'].includes(locale) ? locale : 'auto',
 
   success_url: 'https://spectaculis.nl/account?sepa=success',
   cancel_url: 'https://spectaculis.nl/account?sepa=cancel',
