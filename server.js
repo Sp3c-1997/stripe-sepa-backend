@@ -69,13 +69,25 @@ app.post('/webhook', async (req, res) => {
       const session = event.data.object;
 
       if (session.mode === 'setup') {
-        const stripeCustomerId = session.customer;
-        const setupIntentId = session.setup_intent;
+       let stripeCustomerId = session.customer || null;
+const setupIntentId = session.setup_intent;
 
-        const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
-        const paymentMethodId = setupIntent.payment_method;
+const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+const paymentMethodId = setupIntent.payment_method;
 
-        const customer = await stripe.customers.retrieve(stripeCustomerId);
+if (!stripeCustomerId && session.customer_details?.email) {
+  const newCustomer = await stripe.customers.create({
+    email: session.customer_details.email
+  });
+
+  stripeCustomerId = newCustomer.id;
+}
+
+if (!stripeCustomerId) {
+  throw new Error('Geen Stripe customer gevonden in checkout session');
+}
+
+const customer = await stripe.customers.retrieve(stripeCustomerId);
 
 const email =
   customer.email ||
