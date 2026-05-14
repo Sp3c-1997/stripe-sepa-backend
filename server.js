@@ -45,13 +45,14 @@ app.post('/create-session', async (req, res) => {
       email
     });
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'setup',
-      customer: customer.id,
-      payment_method_types: ['sepa_debit'],
-      success_url: 'https://spectaculis.nl/account?sepa=success',
-      cancel_url: 'https://spectaculis.nl/account?sepa=cancel',
-    });
+ const session = await stripe.checkout.sessions.create({
+  mode: 'setup',
+  payment_method_types: ['sepa_debit'],
+  locale: 'auto',
+
+  success_url: 'https://spectaculis.nl/account?sepa=success',
+  cancel_url: 'https://spectaculis.nl/account?sepa=cancel',
+});
 
     res.json({ url: session.url });
   } catch (err) {
