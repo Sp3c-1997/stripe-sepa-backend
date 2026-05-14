@@ -45,7 +45,7 @@ app.post('/create-session', async (req, res) => {
       email
     });
 
- cconst session = await stripe.checkout.sessions.create({
+ const session = await stripe.checkout.sessions.create({
   mode: 'setup',
   customer: customer.id,
   payment_method_types: ['sepa_debit'],
