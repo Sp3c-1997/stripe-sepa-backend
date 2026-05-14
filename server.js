@@ -45,15 +45,15 @@ app.post('/create-session', async (req, res) => {
       email
     });
 
- const session = await stripe.checkout.sessions.create({
+ cconst session = await stripe.checkout.sessions.create({
   mode: 'setup',
+  customer: customer.id,
   payment_method_types: ['sepa_debit'],
   locale: ['nl', 'en', 'de', 'fr'].includes(locale) ? locale : 'auto',
 
   success_url: 'https://spectaculis.nl/account?sepa=success',
   cancel_url: 'https://spectaculis.nl/account?sepa=cancel',
 });
-
     res.json({ url: session.url });
   } catch (err) {
     console.error('Stripe fout bij create-session:', err);
