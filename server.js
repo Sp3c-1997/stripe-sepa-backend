@@ -84,7 +84,15 @@ if (!stripeCustomerId && session.customer_details?.email) {
 }
 
 if (!stripeCustomerId) {
-  throw new Error('Geen Stripe customer gevonden in checkout session');
+  console.error('Webhook checkout.session.completed zonder session.customer', {
+    session_id: session.id,
+    email: session.customer_details?.email
+  });
+
+  return res.status(200).json({
+    received: true,
+    skipped: true
+  });
 }
 
 const customer = await stripe.customers.retrieve(stripeCustomerId);
